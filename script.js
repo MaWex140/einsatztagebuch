@@ -1,130 +1,173 @@
-// Array zum Speichern der Einträge
-let entries = [];
+// State Management
+let entries = JSON.parse(localStorage.getItem('einsatztagebuch_entries')) || [];
+let currentTheme = localStorage.getItem('theme') || 'light';
 
-// DOM-Elemente
+// DOM Elements
 const entryForm = document.getElementById('entryForm');
 const entryTableBody = document.getElementById('entryTableBody');
+const datetimeElement = document.getElementById('datetime');
+const themeToggle = document.getElementById('themeToggle');
+const tabLinks = document.querySelectorAll('.tab-link');
+const tabContents = document.querySelectorAll('.tab-content');
+const currentTabTitle = document.getElementById('currentTabTitle');
+const exportBtn = document.getElementById('exportBtn');
 
-
-// Funktion zum Hinzufügen eines Eintrags
-function addEntry(name, entry, type) {
-  // Erstellen eines neuen Eintrags-Objekts
-  const newEntry = {
-    id: generateEntryId(),
-    name,
-    timestamp: getCurrentDateTime(),
-    entry,
-    type
-  };
-
-  // Hinzufügen des neuen Eintrags zum Array
-  entries.unshift(newEntry); // Hinzufügen an den Anfang des Arrays
-
-  // Zurücksetzen des Formulars
-  entryForm.reset();
-
-  // Aktualisieren der Eintragsliste
+// --- Initialization ---
+document.addEventListener('DOMContentLoaded', () => {
+  applyTheme(currentTheme);
   renderEntries();
+  startDateTimeUpdate();
+  initTabs();
+});
+
+// --- Theme Management ---
+themeToggle.addEventListener('click', () => {
+  currentTheme = currentTheme === 'light' ? 'dark' : 'light';
+  applyTheme(currentTheme);
+});
+
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  themeToggle.textContent = theme === 'light' ? '☀️' : '🌙';
+  localStorage.setItem('theme', theme);
 }
 
-// Funktion zum Generieren einer eindeutigen Eintrags-ID
-function generateEntryId() {
-  if (entries.length === 0) {
-    return 1;
-  } else {
-    return entries[0].id + 1;
+// --- Tab Management ---
+function initTabs() {
+  tabLinks.forEach(link => {
+    link.addEventListener('click', (e) => {
+      e.preventDefault();
+      const targetTab = link.getAttribute('data-tab');
+
+      // Switch Active Class on Links
+      tabLinks.forEach(l => l.classList.remove('active'));
+      link.classList.add('active');
+
+      // Switch Active Class on Contents
+      tabContents.forEach(content => {
+        content.classList.remove('active');
+        if (content.id === targetTab) content.classList.add('active');
+      });
+
+      // Update Title
+      currentTabTitle.textContent = link.textContent;
+    });
+  });
+}
+
+// --- Entry Management ---
+entryForm.addEventListener('submit', (e) => {
+  e.preventDefault();
+  const name = document.getElementById('nameInput').value;
+  const text = document.getElementById('entryInput').value;
+  const type = document.getElementById('typeSelect').value;
+
+  const newEntry = {
+    id: generateId(),
+    timestamp: getCurrentDateTime(),
+    content: text,
+    name: name,
+    type: type,
+    isCorrected: false,
+    correctedAt: null
+  };
+
+  entries.unshift(newEntry);
+  saveAndRender();
+  entryForm.reset();
+});
+
+function generateId() {
+  return entries.length > 0 ? Math.max(...entries.map(e => e.id)) + 1 : 1;
+}
+
+function strikeEntry(id) {
+  const entry = entries.find(e => e.id === id);
+  if (entry && !entry.isCorrected) {
+    entry.isCorrected = true;
+    entry.correctedAt = getCurrentDateTime();
+    saveAndRender();
   }
 }
 
-// Funktion zum Abrufen des aktuellen Datums und der Uhrzeit im Format "dd.mm.yyyy hh:mm"
-function getCurrentDateTime() {
-  const currentDate = new Date();
-  const day = String(currentDate.getDate()).padStart(2, '0');
-  const month = String(currentDate.getMonth() + 1).padStart(2, '0');
-  const year = currentDate.getFullYear();
-  const hours = String(currentDate.getHours()).padStart(2, '0');
-  const minutes = String(currentDate.getMinutes()).padStart(2, '0');
-
-  return `${day}.${month}.${year}, ${hours}:${minutes}: Uhr`;
+function saveAndRender() {
+  localStorage.setItem('einsatztagebuch_entries', JSON.stringify(entries));
+  renderEntries();
 }
 
-// Funktion zum Rendern der Einträge
 function renderEntries() {
-  // Leeren des Tabellenkörpers
   entryTableBody.innerHTML = '';
-
-  // Iterieren über die Einträge und sie zur Tabelle hinzufügen
   entries.forEach(entry => {
     const row = document.createElement('tr');
+    if (entry.isCorrected) row.classList.add('correction');
+
     row.innerHTML = `
-      <td>${entry.id}</td>
-      <td>${entry.timestamp}</td>
-      <td>${entry.entry}</td>
-      <td>${entry.name}</td>
-      <td>${getEntryTypeLabel(entry.type)}</td>
-    `;
+            <td>${entry.id}</td>
+            <td>${entry.timestamp}</td>
+            <td>
+                ${entry.content}
+                ${entry.isCorrected ? `<span class="correction-info">(Storniert am ${entry.correctedAt})</span>` : ''}
+            </td>
+            <td>${entry.name}</td>
+            <td><span class="badge badge-${entry.type}">${getEntryTypeLabel(entry.type)}</span></td>
+            <td>
+                ${!entry.isCorrected ? `<button class="outline secondary" onclick="strikeEntry(${entry.id})" style="padding: 2px 8px; font-size: 0.7rem;">Korrektur</button>` : ''}
+            </td>
+        `;
     entryTableBody.appendChild(row);
   });
 }
 
-// Funktion zum Rückgeben des Beschriftungstexts der Eintragsart
 function getEntryTypeLabel(type) {
-  switch (type) {
-    case 'info':
-      return 'Eingehende Information';
-    case 'decision':
-      return 'Entscheidung';
-    case 'action':
-      return 'Maßnahme';
-    case 'request':
-      return 'Anforderung';
-      case 'situationchange':
-        return 'Lageänderung';
-    case 'other':
-      return 'Sonstiges';
-    default:
-      return '';
+  const labels = {
+    'info': 'Information',
+    'decision': 'Entscheidung',
+    'action': 'Maßnahme',
+    'request': 'Anforderung',
+    'situationchange': 'Lageänderung',
+    'other': 'Sonstiges'
+  };
+  return labels[type] || type;
+}
+
+// --- Export Management ---
+exportBtn.addEventListener('click', () => {
+  if (entries.length === 0) return alert('Keine Einträge zum Exportieren vorhanden.');
+
+  const data = entries.map(e => ({
+    'ID': e.id,
+    'Zeitstempel': e.timestamp,
+    'Inhalt': e.content,
+    'Bearbeiter': e.name,
+    'Art': getEntryTypeLabel(e.type),
+    'Status': e.isCorrected ? `Storniert am ${e.correctedAt}` : 'Gültig'
+  }));
+
+  const worksheet = XLSX.utils.json_to_sheet(data);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Einsatztagebuch");
+
+  // Export als XLSX
+  XLSX.writeFile(workbook, `Einsatztagebuch_${new Date().toISOString().slice(0, 10)}.xlsx`);
+});
+
+// --- Date & Time Utils ---
+function getCurrentDateTime() {
+  const now = new Date();
+  return now.toLocaleString('de-DE', {
+    day: '2-digit', month: '2-digit', year: 'numeric',
+    hour: '2-digit', minute: '2-digit'
+  });
+}
+
+function updateDateTime() {
+  if (datetimeElement) {
+    datetimeElement.textContent = new Date().toLocaleString('de-DE');
   }
 }
 
-// Ereignislistener für das Formular zum Hinzufügen eines Eintrags
-entryForm.addEventListener('submit', function(event) {
-  event.preventDefault(); // Verhindern des Standardverhaltens des Formulars
-
-  const name = document.getElementById('nameInput').value;
-  const entry = document.getElementById('entryInput').value;
-  const type = document.getElementById('typeSelect').value;
-
-  addEntry(name, entry, type);
-});
-
-// DOM-Element
-const datetimeElement = document.getElementById('datetime');
-
-// Funktion zum Aktualisieren des aktuellen Datums und der Uhrzeit
-function updateDateTime() {
-  const currentDate = new Date();
-  const day = String(currentDate.getDate()).padStart(2, '0');
-  const month = String(currentDate.getMonth() + 1).padStart(2, '0');
-  const year = currentDate.getFullYear();
-  const hours = String(currentDate.getHours()).padStart(2, '0');
-  const minutes = String(currentDate.getMinutes()).padStart(2, '0');
-  const seconds = String(currentDate.getSeconds()).padStart(2, '0');
-  const dateTimeString = `${day}.${month}.${year}, ${hours}:${minutes}:${seconds} Uhr`;
-
-  datetimeElement.textContent = dateTimeString;
-}
-
-// Funktion zum Aktualisieren des Datums und der Uhrzeit in regelmäßigen Abständen
 function startDateTimeUpdate() {
   updateDateTime();
-  setInterval(updateDateTime, 1000); // Alle 1 Sekunde aktualisieren
+  setInterval(updateDateTime, 1000);
 }
 
-// Aufruf der Funktion zum Starten der Aktualisierung
-startDateTimeUpdate();
-
-// Beim Laden der Seite die Einträge laden und rendern
-window.addEventListener('load', function() {
-  renderEntries();
-});

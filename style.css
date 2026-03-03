@@ -1,0 +1,105 @@
+/* Pico.css base + Custom Feuerwehr Dark Mode */
+
+:root {
+    --primary: #d32f2f; /* Feuerwehr Rot */
+    --primary-hover: #b71c1c;
+    --primary-focus: rgba(211, 47, 47, 0.2);
+    --secondary-red: #ff5252;
+}
+
+[data-theme="dark"] {
+    --primary: #ff5252;
+    --primary-hover: #ff867f;
+    --primary-focus: rgba(255, 82, 82, 0.2);
+}
+
+/* Tab Navigation */
+.tab-nav {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    border-bottom: 1px solid var(--muted-border-color);
+}
+
+.tab-link {
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    transition: all 0.2s ease;
+    text-decoration: none !important;
+    color: var(--color);
+}
+
+.tab-link:hover {
+    background: var(--card-background-color);
+}
+
+.tab-link.active {
+    border-bottom-color: var(--primary);
+    font-weight: bold;
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+/* Dark Mode Toggle (OpenClaw/Steipete Style) */
+.theme-toggle {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0.5rem;
+    font-size: 1.25rem;
+    color: var(--color);
+    transition: transform 0.2s ease;
+}
+
+.theme-toggle:hover {
+    transform: scale(1.1);
+}
+
+/* Strike-through effect for corrections */
+.correction {
+    text-decoration: line-through;
+    opacity: 0.6;
+    color: var(--muted-color);
+}
+
+.correction-info {
+    font-size: 0.75rem;
+    font-style: italic;
+    display: block;
+}
+
+/* Form Styles */
+form {
+    background: var(--card-background-color);
+    padding: 1.5rem;
+    border-radius: var(--border-radius);
+    box-shadow: var(--card-box-shadow);
+}
+
+/* Badge for Entry Types */
+.badge {
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.badge-info { background: #1976d2; color: white; }
+.badge-decision { background: #388e3c; color: white; }
+.badge-action { background: #fbc02d; color: black; }
+.badge-request { background: #7b1fa2; color: white; }
+.badge-situationchange { background: #f57c00; color: white; }
+.badge-other { background: #757575; color: white; }
+
+/* Responsive Table */
+.overflow-auto {
+    overflow-x: auto;
+}

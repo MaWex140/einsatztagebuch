@@ -1,109 +1,115 @@
 <!DOCTYPE html>
-<html>
+<html lang="de" data-theme="light">
+
 <head>
-  <title>Einsatztagebuch</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Einsatztagebuch 2.0</title>
+  <!-- Pico.css -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
+  <link rel="stylesheet" href="style.css">
+  <!-- SheetJS for XLSX Export -->
+  <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 </head>
-<body class="bg-gray-100">
-  <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-    <div class="container">
-      <a class="navbar-brand" href="#">Einsatztagebuch</a>
-      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-        <span class="navbar-toggler-icon"></span>
-      </button>
-      <div class="collapse navbar-collapse" id="navbarNav">
-        <ul class="navbar-nav">
-          <li class="nav-item">
-            <a class="nav-link" href="#">Einsatztagebuch</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="#">Kräfteübersicht</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="#">Informationen</a>
-            
-          </li>
-        </ul>
-      </div>
-    </div>
+
+<body class="container">
+
+  <nav>
+    <ul>
+      <li><strong>🚒 Einsatztagebuch</strong></li>
+    </ul>
+    <ul>
+      <li><button id="themeToggle" class="theme-toggle" aria-label="Dark Mode umschalten">☀️</button></li>
+    </ul>
   </nav>
 
-  <div class="container mx-auto p-4">
-    <h1 class="text-3xl font-bold mb-4 flex items-center">
-      Einsatztagebuch
-    </h1>
-  <h5>
-    <span id="datetime" class="text-base ml-4"></span>
+  <header>
+    <div class="tab-nav">
+      <a href="#" class="tab-link active" data-tab="tagebuch">Einsatztagebuch</a>
+      <a href="#" class="tab-link" data-tab="kraefte">Kräfteübersicht</a>
+      <a href="#" class="tab-link" data-tab="infos">Informationen</a>
+    </div>
+    <hgroup>
+      <h2 id="currentTabTitle">Einsatztagebuch</h2>
+      <p id="datetime"></p>
+    </hgroup>
+  </header>
 
-  </h5>
-    <form id="entryForm" class="mb-4">
-      <div class="flex flex-col mb-2">
-        <label for="nameInput" class="mb-1">Name:</label>
-        <input type="text" class="form-control" id="nameInput" required>
+  <main>
+    <!-- Tab: Einsatztagebuch -->
+    <section id="tagebuch" class="tab-content active">
+      <form id="entryForm">
+        <div class="grid">
+          <label for="nameInput">
+            Name/Kennwort
+            <input type="text" id="nameInput" placeholder="Bearbeiter" required>
+          </label>
+          <label for="typeSelect">
+            Eintragsart
+            <select id="typeSelect" required>
+              <option value="other">Sonstiges</option>
+              <option value="info">Eingehende Information</option>
+              <option value="decision">Entscheidung</option>
+              <option value="action">Maßnahme</option>
+              <option value="request">Anforderung</option>
+              <option value="situationchange">Lageänderung</option>
+            </select>
+          </label>
+        </div>
+        <label for="entryInput">
+          Eintrag
+          <textarea id="entryInput" rows="2" placeholder="Was ist passiert?" required></textarea>
+        </label>
+        <div class="grid">
+          <button type="submit">Eintrag hinzufügen</button>
+          <button type="button" class="secondary" id="exportBtn">Export (.xlsx)</button>
+        </div>
+      </form>
+
+      <div class="overflow-auto">
+        <table id="entryTable">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Zeit</th>
+              <th>Inhalt</th>
+              <th>Name</th>
+              <th>Art</th>
+              <th>Aktion</th>
+            </tr>
+          </thead>
+          <tbody id="entryTableBody">
+            <!-- Einträge werden hier dynamisch geladen -->
+          </tbody>
+        </table>
       </div>
-      <div class="flex flex-col mb-2">
-        <label for="entryInput" class="mb-1">Eintrag:</label>
-        <textarea class="form-control" id="entryInput" rows="3" required></textarea>
-      </div>
-      <div class="flex flex-col mb-2">
-        <label for="typeSelect" class="mb-1">Eintragsart:</label>
-        <select class="form-select" id="typeSelect" required>
-          <option value="other">Sonstiges</option>
-          <option value="info">Eingehende Information</option>
-          <option value="decision">Entscheidung</option>
-          <option value="action">Maßnahme</option>
-          <option value="request">Anforderung</option>
-          <option value="situationschange">Lageentwicklung</option>
-        </select>
-      </div>
-      <button type="submit" class="btn btn-primary mt-2">Eintrag hinzufügen</button>
-    </form>
-    
-    <table class="table">
-      <thead>
-        <tr>
-          <th class="text-left">#</th>
-          <th class="text-left">Datum und Uhrzeit</th>
-          <th class="text-left">Eintrag</th>
-          <th class="text-left">Name</th>
-          <th class="text-left">Eintragsart</th>
-        </tr>
-      </thead>
-      <tbody id="entryTableBody">
-        <!-- Hier werden die Einträge dynamisch hinzugefügt -->
-      </tbody>
-    </table>
-  </div>
+    </section>
 
+    <!-- Tab: Kräfteübersicht -->
+    <section id="kraefte" class="tab-content">
+      <article>
+        <h3>Kräfteübersicht</h3>
+        <p>Platzhalter für die Kräfteübersicht. Hier können eintreffende Einheiten dokumentiert werden.</p>
+      </article>
+    </section>
 
+    <!-- Tab: Informationen -->
+    <section id="infos" class="tab-content">
+      <article>
+        <h3>Informationen / Hilfsmittel</h3>
+        <p>In Kürze: Interaktive Formelsammlung (Wasserförderung).</p>
+      </article>
+    </section>
+  </main>
 
-  <div class="modal fade" id="infoModal" tabindex="-1" role="dialog" aria-labelledby="infoModal" aria-hidden="true">
-    <div class="modal-dialog" role="document">
-       <div class="modal-content">
-       <div class="modal-header">
-        <h5 class="modal-title" id="infoModal">Formelsammlung Wasserförderung Lange Wegstrecke</h5>
-  <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-  <span aria-hidden="true">&times;</span>
-  </button>
-  </div>
-  <div class="modal-body">
-    <p>Platzhalter</p>
-    <hr style="border-color: rgb(0, 0, 0);">
-    <p><b>Geplante Features</b> </p>
-     <p>Grundlagen</p>
-    <p>Formeln</p>
-    
-          
-  </div>
-  <div class="modal-footer">
-   <button type="button" class="btn btn-outline-success" data-dismiss="modal">Schließen</button>
-   
-  </div>
-  </div>
-  </div>
-  </div>
+  <footer>
+    <small>
+      Einsatztagebuch v2.0 • Rechtssichere Dokumentation •
+      <a href="https://github.com/MaWex140/einsatztagebuch" target="_blank">GitHub</a>
+    </small>
+  </footer>
 
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script> <!-- Offlineverfügbar machen -->
   <script src="script.js"></script>
 </body>
+
 </html>
