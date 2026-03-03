@@ -362,12 +362,14 @@ exportPdfBtn.addEventListener('click', () => {
     didDrawCell: (data) => {
       if (data.section === 'body') {
         const rowIndex = data.row.index;
+        const colIndex = data.column.index;
         const entry = entries[rowIndex];
-        if (entry && entry.isCorrected) {
+        // Nur Spalte "Inhalt" (2) und "Art" (4) durchstreichen
+        if (entry && entry.isCorrected && (colIndex === 2 || colIndex === 4)) {
           const { doc } = data;
           const x = data.cell.x;
           const y = data.cell.y + data.cell.height / 2;
-          doc.setDrawColor(200, 0, 0); // Rote Linie für Storno
+          doc.setDrawColor(80, 80, 80); // Dunkelgraue Linie wie am PC
           doc.setLineWidth(0.5);
           doc.line(x, y, x + data.cell.width, y);
         }
