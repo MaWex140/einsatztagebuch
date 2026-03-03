@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Einsatztagebuch 2.1</title>
+  <title>EinsatzBereit 2.2</title>
   <!-- Pico.css -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
   <link rel="stylesheet" href="style.css">
@@ -20,33 +20,52 @@
     <ul>
       <li>
         <div id="orgLogoContainer" class="logo-placeholder">
-          <img id="orgLogoDisplay" src="" alt="" style="display: none; max-height: 40px;">
-          <span id="orgNameHeader">Einsatztagebuch</span>
+          <img id="orgLogoDisplay" src="" alt="Logo" style="display: none;">
+          <span id="orgNameHeader">EinsatzBereit</span>
+        </div>
+      </li>
+    </ul>
+    <ul>
+      <li>
+        <div class="incident-header-info">
+          <strong id="headerIncidentKeyword">---</strong>
+          <span id="headerIncidentLocation">---</span>
+          <span id="incidentTimerDisplay"
+            style="display: none; font-weight: bold; color: var(--primary);">00:00:00</span>
         </div>
       </li>
     </ul>
     <ul>
       <li><strong id="globalClock">00.00.0000, 00:00:00</strong></li>
       <li><button id="themeToggle" class="theme-toggle" aria-label="Dark Mode umschalten">☀️</button></li>
+      <li><button id="openSettingsBtn" class="theme-toggle" aria-label="Einstellungen">⚙️</button></li>
     </ul>
   </nav>
 
   <header>
     <div class="tab-nav">
-      <a href="#" class="tab-link active" data-tab="tagebuch">📖 Tagebuch</a>
-      <a href="#" class="tab-link" data-tab="kraefte">🚒 Kräfte</a>
-      <a href="#" class="tab-link" data-tab="einsatzConfig">📝 Einsatz</a>
-      <a href="#" class="tab-link" data-tab="orgConfig">⚙️ Einstellungen</a>
+      <a href="#" class="tab-link active" data-tab="kraefte">� Bereitstellungsraum</a>
+      <a href="#" class="tab-link" data-tab="tagebuch">� Tagebuch</a>
+      <a href="#" class="tab-link" data-tab="einsatzConfig">📝 Einsatzdaten</a>
       <a href="#" class="tab-link" data-tab="infos">ℹ️ Infos</a>
     </div>
   </header>
 
   <main>
+    <!-- Tab: Bereitstellungsraum -->
+    <section id="kraefte" class="tab-content active">
+      <article>
+        <h3>Bereitstellungsraum</h3>
+        <p>Dokumentation der eintreffenden Einheiten und deren Status.</p>
+        <!-- Platzhalter für zukünftige Kräfteverwaltung -->
+      </article>
+    </section>
+
     <!-- Tab: Einsatztagebuch -->
-    <section id="tagebuch" class="tab-content active">
+    <section id="tagebuch" class="tab-content">
       <hgroup>
         <h2 id="incidentTitleBadge">Einsatztagebuch</h2>
-        <p id="incidentDetailsBadge">Bitte Einsatzdaten unter "Einsatz" konfigurieren.</p>
+        <p id="incidentDetailsBadge">Bitte Einsatzdaten konfigurieren.</p>
       </hgroup>
 
       <form id="entryForm">
@@ -76,6 +95,8 @@
           <div class="export-group">
             <button type="button" class="secondary" id="exportXlsxBtn">Excel</button>
             <button type="button" class="secondary" id="exportPdfBtn">PDF (A4)</button>
+            <button type="button" class="contrast" id="clearEntriesBtn" disabled
+              title="Löschen nur nach Export möglich">🗑️</button>
           </div>
         </div>
       </form>
@@ -108,7 +129,7 @@
               <input type="text" id="incidentKeyword" placeholder="z.B. FEU 2">
             </label>
             <label for="incidentLocation">
-              Einsatzort
+              Einsatzort / Adresse
               <input type="text" id="incidentLocation" placeholder="Musterstraße 1">
             </label>
           </div>
@@ -118,41 +139,20 @@
               <input type="text" id="incidentNumber" placeholder="2024-123">
             </label>
             <label for="incidentDate">
-              Datum
+              Einsatzdatum
               <input type="date" id="incidentDate">
             </label>
+            <label for="incidentStartTime">
+              Ereignisbeginn (Uhrzeit)
+              <input type="time" id="incidentStartTime">
+            </label>
           </div>
-          <button type="submit">Daten übernehmen</button>
-          <button type="button" class="contrast" id="resetIncidentBtn">Neuer Einsatz (Leeren)</button>
+          <div class="grid">
+            <button type="submit">Daten übernehmen</button>
+            <button type="button" class="outline contrast" id="resetIncidentBtn" disabled
+              title="Löschen nur nach Export möglich">Einsatz leeren</button>
+          </div>
         </form>
-      </article>
-    </section>
-
-    <!-- Tab: Organisation/Einstellungen -->
-    <section id="orgConfig" class="tab-content">
-      <article>
-        <h3>Organisationseinstellungen</h3>
-        <form id="orgForm">
-          <label for="orgNameInput">
-            Name der Organisation
-            <input type="text" id="orgNameInput" placeholder="z.B. Freiwillige Feuerwehr Musterstadt">
-          </label>
-          <label for="orgLogoInput">
-            Logo hochladen
-            <input type="file" id="orgLogoInput" accept="image/*">
-          </label>
-          <button type="submit">Speichern</button>
-        </form>
-        <hr>
-        <p><small>Diese Daten werden dauerhaft im Browser gespeichert und für den PDF-Header verwendet.</small></p>
-      </article>
-    </section>
-
-    <!-- Tab: Kräfteübersicht -->
-    <section id="kraefte" class="tab-content">
-      <article>
-        <h3>Kräfteübersicht</h3>
-        <p>Platzhalter für die Kräfteübersicht.</p>
       </article>
     </section>
 
@@ -165,9 +165,32 @@
     </section>
   </main>
 
+  <!-- Modal: Organisationseinstellungen -->
+  <dialog id="settingsModal">
+    <article>
+      <header>
+        <a href="#close" aria-label="Close" class="close" id="closeSettingsBtn"></a>
+        Organisationseinstellungen
+      </header>
+      <form id="orgForm">
+        <label for="orgNameInput">
+          Name der Organisation
+          <input type="text" id="orgNameInput" placeholder="z.B. Freiwillige Feuerwehr Musterstadt">
+        </label>
+        <label for="orgLogoInput">
+          Logo hochladen (Format 1:1 empfohlen)
+          <input type="file" id="orgLogoInput" accept="image/*">
+        </label>
+        <footer>
+          <button type="submit">Speichern</button>
+        </footer>
+      </form>
+    </article>
+  </dialog>
+
   <footer>
     <small>
-      Einsatztagebuch v2.1 • Rechtssichere Dokumentation •
+      EinsatzBereit - Die Lösung für alle Organisationen - 2023 •
       <a href="https://github.com/MaWex140/einsatztagebuch" target="_blank">GitHub</a>
     </small>
   </footer>

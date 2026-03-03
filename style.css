@@ -19,18 +19,56 @@
     border-bottom: 2px solid var(--primary);
     margin-bottom: 1rem;
     padding: 0.5rem 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
 .logo-placeholder {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
+}
+
+.logo-placeholder img {
+    height: 45px;
+    width: 45px;
+    object-fit: cover;
+    border-radius: 4px;
+    border: 1px solid var(--muted-border-color);
+}
+
+.incident-header-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    line-height: 1.2;
+}
+
+#headerIncidentKeyword {
+    color: var(--primary);
+    font-size: 1.1rem;
+    text-transform: uppercase;
+}
+
+#headerIncidentLocation {
+    font-size: 0.85rem;
+    color: var(--muted-color);
+}
+
+#incidentTimerDisplay {
+    display: block;
+    font-family: monospace;
+    font-size: 1.2rem;
+    margin-top: 2px;
 }
 
 #globalClock {
     font-family: monospace;
     font-size: 1.1rem;
     color: var(--primary);
+    white-space: nowrap;
 }
 
 /* Tab Navigation */
@@ -87,16 +125,22 @@
     }
 }
 
-/* Dark Mode Toggle */
+/* Dark Mode / Settings Toggles */
 .theme-toggle {
     background: none;
     border: none;
     cursor: pointer;
     padding: 0.5rem;
     font-size: 1.25rem;
+    line-height: 1;
 }
 
-/* Export Buttons */
+.theme-toggle:hover {
+    background: var(--secondary-focus);
+    border-radius: 50%;
+}
+
+/* Export / Action Buttons */
 .export-group {
     display: flex;
     gap: 0.5rem;
