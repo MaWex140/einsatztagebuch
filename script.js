@@ -344,21 +344,35 @@ exportPdfBtn.addEventListener('click', () => {
 
   // Table
   const tableData = entries.map(e => [
-    e.id,
-    e.timestamp,
-    e.isCorrected ? `${e.content} (STORNO)` : e.content,
-    e.name,
-    getEntryTypeLabel(e.type)
+    { content: e.id, isCorrected: e.isCorrected },
+    { content: e.timestamp, isCorrected: e.isCorrected },
+    { content: e.isCorrected ? `${e.content} (STORNO)` : e.content, isCorrected: e.isCorrected },
+    { content: e.name, isCorrected: e.isCorrected },
+    { content: getEntryTypeLabel(e.type), isCorrected: e.isCorrected }
   ]);
 
   doc.autoTable({
     startY: 45,
     head: [['#', 'Zeit', 'Inhalt', 'Name', 'Art']],
-    body: tableData,
+    body: tableData.map(row => row.map(cell => cell.content)),
     theme: 'grid',
     headStyles: { fillColor: [211, 47, 47] },
     styles: { fontSize: 9 },
-    columnStyles: { 2: { cellWidth: 80 } }
+    columnStyles: { 2: { cellWidth: 80 } },
+    didDrawCell: (data) => {
+      if (data.section === 'body') {
+        const rowIndex = data.row.index;
+        const entry = entries[rowIndex];
+        if (entry && entry.isCorrected) {
+          const { doc } = data;
+          const x = data.cell.x;
+          const y = data.cell.y + data.cell.height / 2;
+          doc.setDrawColor(200, 0, 0); // Rote Linie für Storno
+          doc.setLineWidth(0.5);
+          doc.line(x, y, x + data.cell.width, y);
+        }
+      }
+    }
   });
 
   doc.save(`Einsatz_${incidentData.keyword || 'Export'}.pdf`);
