@@ -7,11 +7,15 @@
   <title>EinsatzBereit 2.2</title>
   <!-- Pico.css -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="css/style.css">
   <!-- Libraries for Export -->
   <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+  <!-- QR & Export Libraries -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="https://unpkg.com/html5-qrcode"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
 
 <body class="container">
@@ -52,12 +56,214 @@
   </header>
 
   <main>
-    <!-- Tab: Bereitstellungsraum -->
     <section id="kraefte" class="tab-content active">
       <article>
-        <h3>Bereitstellungsraum</h3>
-        <p>Dokumentation der eintreffenden Einheiten und deren Status.</p>
-        <!-- Platzhalter für zukünftige Kräfteverwaltung -->
+        <h3>Bereitstellungsraum / Kräfteübersicht</h3>
+
+        <div class="kraefte-controls grid" style="margin-bottom: 2rem; align-items: end;">
+          <div class="search-container">
+            <label for="unitSearchInput">Suche</label>
+            <input type="search" id="unitSearchInput" placeholder="🔍 Suchen..." oninput="renderUnits()">
+          </div>
+          <div>
+            <label for="unitSortSelect">Sortierung</label>
+            <select id="unitSortSelect" onchange="renderUnits()">
+              <option value="status">Nach Status</option>
+              <option value="name">Nach Name</option>
+              <option value="type">Nach Fahrzeugart</option>
+            </select>
+          </div>
+          <div style="display: flex; gap: 10px; padding-bottom: 1rem;">
+            <button class="outline secondary view-btn-active" id="viewCardBtn" onclick="setUnitView('card')"
+              style="flex: 1; margin: 0; padding: 5px;">Karten</button>
+            <button class="outline secondary" id="viewListBtn" onclick="setUnitView('list')"
+              style="flex: 1; margin: 0; padding: 5px;">Liste</button>
+          </div>
+          <div style="padding-bottom: 1rem; display: flex; gap: 10px;">
+            <button id="addUnitModalBtn" onclick="openUnitModal()" style="margin: 0; flex: 1;">➕ Einheit</button>
+            <button id="scanUnitBtn" class="outline" onclick="openScanner()" style="margin: 0; flex: 1;">📷
+              Scan</button>
+          </div>
+        </div>
+
+        <!-- Unit Modal -->
+        <dialog id="unitModal">
+          <article style="max-width: 900px; width: 95vw;">
+            <header>
+              <a href="#close" aria-label="Close" class="close" onclick="closeUnitModal()"></a>
+              <span id="unitModalTitle" style="font-weight: bold;">Neue Einheit hinzufügen</span>
+            </header>
+            <form id="unitForm">
+              <input type="hidden" id="editingUnitId" value="">
+
+              <div class="grid">
+                <label for="unitBundesland">
+                  Bundesland
+                  <select id="unitBundesland" onchange="updateLandkreisDropdown()">
+                    <option value="" disabled selected>Bitte wählen...</option>
+                    <option value="BW">Baden-Württemberg</option>
+                    <option value="BY">Bayern</option>
+                    <option value="BE">Berlin</option>
+                    <option value="BB">Brandenburg</option>
+                    <option value="HB">Bremen</option>
+                    <option value="HH">Hamburg</option>
+                    <option value="HE">Hessen</option>
+                    <option value="MV">Mecklenburg-Vorpommern</option>
+                    <option value="NI">Niedersachsen</option>
+                    <option value="NW">Nordrhein-Westfalen</option>
+                    <option value="RP">Rheinland-Pfalz</option>
+                    <option value="SL">Saarland</option>
+                    <option value="SN">Sachsen</option>
+                    <option value="ST">Sachsen-Anhalt</option>
+                    <option value="SH">Schleswig-Holstein</option>
+                    <option value="TH">Thüringen</option>
+                  </select>
+                </label>
+                <label for="unitLandkreis">
+                  Landkreis
+                  <select id="unitLandkreis">
+                    <option value="" disabled selected>Zuerst Bundesland wählen...</option>
+                  </select>
+                </label>
+                <label for="unitOrigin">
+                  Herkunft (Ortsteil/Stadt)
+                  <input type="text" id="unitOrigin" placeholder="Musterstadt" required>
+                </label>
+              </div>
+
+              <div class="grid">
+                <label for="unitOrgType">
+                  Organisation
+                  <select id="unitOrgType" onchange="updateGeneratedCallSign()">
+                    <option value="Florian" selected>Feuerwehr (Florian)</option>
+                    <option value="Pelikan">DLRG (Pelikan)</option>
+                    <option value="Rot Kreuz">Rettungsdienst (Rot Kreuz)</option>
+                    <option value="SAMA">Rettungsdienst (SAMA/ASB)</option>
+                    <option value="Heros">THW (Heros)</option>
+                    <option value="Akkon">Johanniter (Akkon)</option>
+                    <option value="Johannes">Malteser (Johannes)</option>
+                  </select>
+                </label>
+                <label for="unitStandort">
+                  Standort (1, 2...)
+                  <input type="number" id="unitStandort" value="1" min="1">
+                </label>
+                <label for="unitType">
+                  Fahrzeugart
+                  <select id="unitType" required onchange="updateGeneratedCallSign()">
+                    <option value="" disabled selected>Fahrzeug wählen...</option>
+                    <option value="KdoW" data-code="10">KdoW</option>
+                    <option value="ELW 1" data-code="11">ELW 1</option>
+                    <option value="ELW 2" data-code="12">ELW 2</option>
+                    <option value="HLF 10" data-code="43">HLF 10</option>
+                    <option value="HLF 20" data-code="46">HLF 20</option>
+                    <option value="LF 10" data-code="42">LF 10</option>
+                    <option value="LF 20" data-code="44">LF 20</option>
+                    <option value="DLK" data-code="33">DLK 23/12</option>
+                    <option value="RW" data-code="52">RW</option>
+                    <option value="GW-L" data-code="64">GW-L</option>
+                    <option value="MTW" data-code="19">MTW</option>
+                    <option value="RTW" data-code="83">RTW</option>
+                    <option value="NEF" data-code="82">NEF</option>
+                    <option value="Sonstiges" data-code="00">Sonstiges</option>
+                  </select>
+                </label>
+                <label for="unitFhzNo">
+                  Fahrzeugnummer (1-9)
+                  <input type="number" id="unitFhzNo" value="1" min="1">
+                </label>
+              </div>
+
+              <div class="grid">
+                <label for="unitNameLong" style="grid-column: span 2;">
+                  Funkrufname (Automatisch)
+                  <input type="text" id="unitNameLong" placeholder="Wird generiert..." readonly>
+                </label>
+                <label for="unitPersonnel">
+                  Kräfte (EF/M//Ges)
+                  <input type="text" id="unitPersonnel" placeholder="1/5//6">
+                </label>
+                <label for="unitAgtCount">
+                  Anzahl AGT
+                  <input type="number" id="unitAgtCount" placeholder="0" min="0">
+                </label>
+              </div>
+
+              <div class="grid">
+                <label for="unitIssi">
+                  ISSI (Digitalfunk)
+                  <input type="text" id="unitIssi" placeholder="1001234">
+                </label>
+                <label for="unitMobile">
+                  Mobilfunknummer
+                  <input type="tel" id="unitMobile" placeholder="0170 1234567">
+                </label>
+                <label for="unitWeight">
+                  zul. Gesamtmasse
+                  <select id="unitWeight">
+                    <option value="< 3.5t">&lt; 3,5 t</option>
+                    <option value="< 7.5t">&lt; 7,5 t</option>
+                    <option value="> 7.5t" selected>&gt; 7,5 t</option>
+                  </select>
+                </label>
+              </div>
+
+              <div style="display: flex; gap: 25px; flex-wrap: wrap; margin-bottom: 20px;">
+                <label><input type="checkbox" id="unitSnowChains"> Schneeketten</label>
+                <label><input type="checkbox" id="unitAllWheel"> Allrad</label>
+                <label><input type="checkbox" id="unitArzt"> Arztbesetzt</label>
+                <label><input type="checkbox" id="unitAed"> Defibrillator (AED)</label>
+              </div>
+
+              <div id="equipmentCheckboxContainer" style="margin-bottom: 1rem;">
+                <p style="margin-bottom: 0.5rem; font-weight: bold;">Spezielle Ausrüstung</p>
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px;">
+                  <label><input type="checkbox" class="equip-check" value="Tauchpumpe"> Tauchpumpe</label>
+                  <label><input type="checkbox" class="equip-check" value="Kettensäge"> Kettensäge</label>
+                  <label><input type="checkbox" class="equip-check" value="Rettungssäge"> Rettungssäge</label>
+                  <label><input type="checkbox" class="equip-check" value="TS/PFPN"> TS/PFPN</label>
+                  <label><input type="checkbox" class="equip-check" value="Plasmaschneidgerät">
+                    Plasmaschneidgerät</label>
+                  <label><input type="checkbox" class="equip-check" value="Schmutzwasserpumpe">
+                    Schmutzwasserpumpe</label>
+                  <label><input type="checkbox" class="equip-check" value="i-Sauger"> i-Sauger</label>
+                  <label><input type="checkbox" class="equip-check" value="Anhängerkupplung"> Anhängerkupplung</label>
+                </div>
+              </div>
+
+              <label for="unitEquipment">
+                Zusätzliche Ausrüstung / Bemerkung (Freitext)
+                <textarea id="unitEquipment" rows="2" placeholder="Weitere Details eingeben..."></textarea>
+              </label>
+
+              <footer>
+                <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                  <button type="button" class="outline secondary" onclick="closeUnitModal()">Abbrechen</button>
+                  <button type="submit" id="unitSubmitBtn">Einheit hinzufügen</button>
+                </div>
+              </footer>
+            </form>
+          </article>
+        </dialog>
+
+        <div id="unitCardGrid" class="unit-card-grid">
+          <!-- Unit elements will be rendered here -->
+        </div>
+        <div id="unitListView" class="unit-list-view" style="display: none;">
+          <table class="minimal">
+            <thead>
+              <tr>
+                <th>Status</th>
+                <th>Funkrufname</th>
+                <th>Art</th>
+                <th>Kräfte</th>
+                <th>Ort</th>
+                <th>Aktualisiert</th>
+              </tr>
+            </thead>
+            <tbody id="unitListBody"></tbody>
+          </table>
+        </div>
       </article>
     </section>
 
@@ -138,9 +344,19 @@
               Einsatznummer
               <input type="text" id="incidentNumber" placeholder="2024-123">
             </label>
+            <label for="incidentType">
+              Einsatzart / Stichwort (lang)
+              <input type="text" id="incidentType" placeholder="z.B. Brandeinsatz - Feuer 2">
+            </label>
+          </div>
+          <div class="grid">
             <label for="incidentDate">
               Einsatzdatum
               <input type="date" id="incidentDate">
+            </label>
+            <label for="incidentAlarmTime">
+              Alarmzeit
+              <input type="time" id="incidentAlarmTime">
             </label>
             <label for="incidentStartTime">
               Ereignisbeginn (Uhrzeit)
@@ -181,10 +397,128 @@
           Logo hochladen (Format 1:1 empfohlen)
           <input type="file" id="orgLogoInput" accept="image/*">
         </label>
+        <hr>
+        <div class="grid">
+          <label for="tetraEnabled">
+            TETRA Integration (TetraControl)
+            <select id="tetraEnabled">
+              <option value="false">Deaktiviert</option>
+              <option value="true">Aktiviert</option>
+            </select>
+          </label>
+          <label for="tetraUrl">
+            Server URL (HTTP API)
+            <input type="url" id="tetraUrl" placeholder="http://localhost:8080/json">
+          </label>
+        </div>
+        <label for="tetraInterval">
+          Abfrageintervall (ms)
+          <input type="number" id="tetraInterval" value="5000" min="1000">
+        </label>
+
         <footer>
           <button type="submit">Speichern</button>
         </footer>
       </form>
+    </article>
+  </dialog>
+
+  <!-- QR Display Modal -->
+  <dialog id="qrDisplayModal">
+    <article style="max-width: 400px; text-align: center;">
+      <header>
+        <a href="#close" aria-label="Close" class="close" onclick="closeQrModal()"></a>
+        <span id="qrUnitName" style="font-weight: bold;">Einheit QR-Code</span>
+      </header>
+      <div id="qrcode"
+        style="display: flex; justify-content: center; margin: 20px 0; background: white; padding: 20px; border-radius: 8px;">
+      </div>
+      <p style="font-size: 0.9rem; color: var(--muted-color)">Scannen zum Importieren auf anderen Geräten</p>
+      <footer>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <button onclick="printVehicleSheet()" class="outline">Drucken</button>
+          <button onclick="downloadVehiclePdf()">PDF Download</button>
+        </div>
+      </footer>
+    </article>
+  </dialog>
+
+  <!-- Hidden Print Sheet for Vehicles -->
+  <div id="unitPrintSheet" class="print-only">
+    <div class="print-header">
+      <div id="printOrgName">Organisation</div>
+      <div id="printDateTime">Stand: --:--</div>
+    </div>
+    <div class="print-grid" style="grid-template-columns: 1fr 1fr 1fr;">
+      <div class="print-box">
+        <label>Bundesland</label>
+        <div id="printBundesland">--</div>
+      </div>
+      <div class="print-box">
+        <label>Landkreis</label>
+        <div id="printLandkreis">--</div>
+      </div>
+      <div class="print-box">
+        <label>Stadt / Ortsteil</label>
+        <div id="printOrigin">--</div>
+      </div>
+    </div>
+    <h1 id="printUnitName" style="margin-top: 5mm;">Funkrufname</h1>
+    <div class="print-section-title">Fahrzeugdaten</div>
+    <div class="print-grid">
+      <div class="print-box" style="grid-column: span 2;">
+        <label>Fahrzeugart / Typ</label>
+        <div id="printType">--</div>
+      </div>
+      <div class="print-box">
+        <label>ISSI / Digitalfunk</label>
+        <div id="printIssi">--</div>
+      </div>
+      <div class="print-box">
+        <label>Mobilfunknummer</label>
+        <div id="printMobile">--</div>
+      </div>
+    </div>
+    <div class="print-section-title">Besatzung & Technik</div>
+    <div class="print-grid" style="grid-template-columns: 1fr 1fr 1fr 1fr;">
+      <div class="print-box">
+        <label>Stärke (Soll)</label>
+        <div id="printPersonnel">--</div>
+      </div>
+      <div class="print-box">
+        <label>Anzahl AGT</label>
+        <div id="printAgt">--</div>
+      </div>
+      <div class="print-box">
+        <label>Zul. Gesamtmasse</label>
+        <div id="printWeight">--</div>
+      </div>
+      <div class="print-box">
+        <label>Ausstattung</label>
+        <div id="printExtras">--</div>
+      </div>
+    </div>
+    <div class="print-section-title">Spezialisierung / Beladung / Bemerkung</div>
+    <div class="print-full-box">
+      <div id="printEquipment">--</div>
+    </div>
+    <div class="print-qr-area">
+      <div id="printQrCode"></div>
+      <p>SCANNEN ZUM IMPORT IN DIE EINSATZLEITUNG</p>
+    </div>
+  </div>
+
+  <!-- Scanner Modal -->
+  <dialog id="scannerModal">
+    <article style="max-width: 600px; width: 95vw;">
+      <header>
+        <a href="#close" aria-label="Close" class="close" onclick="closeScanner()"></a>
+        QR-Code Scanner
+      </header>
+      <div id="reader" style="width: 100%; min-height: 300px; background: #000; border-radius: 8px;"></div>
+      <footer>
+        <button class="secondary outline" onclick="closeScanner()">Abbrechen</button>
+      </footer>
     </article>
   </dialog>
 
@@ -195,7 +529,7 @@
     </small>
   </footer>
 
-  <script src="script.js"></script>
+  <script src="js/script.js"></script>
 </body>
 
 </html>
